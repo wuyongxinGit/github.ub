@@ -47,19 +47,19 @@
     <span class="icon-bar"></span>
     <span class="icon-bar"></span>
   </button>
-  <a class="title" href="/">wyx</a>
+  <a class="title" href="/">Hexo</a>
 </div>
 
   <div class="main-container">
     <div class="sidebar">
   <div class="header">
-    <h1 class="title"><a href="/">wyx</a></h1>
+    <h1 class="title"><a href="/">Hexo</a></h1>
     
     <div class="info">
       <div class="content">
         
         
-          <div class="author">吴永新</div>
+          <div class="author">John Doe</div>
         
       </div>
       
@@ -85,15 +85,15 @@
           
             
               <li class="tag-list-container">
-                <a href="javascript:;">Tag</a>
+                <a href="javascript:;">标签</a>
                 
               </li>
             
           
             
               <li class="archive-list-container">
-                <a href="javascript:;">Archive</a>
-                <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/">2016</a><span class="archive-list-count">1</span></li></ul>
+                <a href="javascript:;">归档</a>
+                <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/">2016</a><span class="archive-list-count">2</span></li></ul>
               </li>
             
           
@@ -103,13 +103,13 @@
           
             
               <li>
-                <a href="/" title="Homepage">主页</a>
+                <a href="/" title="Homepage">Homepage</a>
               </li>
             
           
             
               <li>
-                <a href="/archives" title="By Year">时间</a>
+                <a href="/archives" title="By Year">By Year</a>
               </li>
             
           
@@ -119,7 +119,7 @@
           
             
               <li>
-                <a href="https://github.com/denjones/hexo-theme-chan" title="Chan" target="_blank" rel="external">主题作者</a>
+                <a href="https://github.com/denjones/hexo-theme-chan" title="Chan" target="_blank" rel="external">Chan</a>
               </li>
             
           
@@ -146,6 +146,85 @@
         <div style="max-width: 1000px">
       
           
+
+  
+  
+    <div class="post-list">
+  
+
+    <div class="post-list-item article">
+      <h3 class="article-header">
+        <a href="/2016/11/10/mysql主从复制/" >
+  
+</a>
+
+      </h3>
+      
+
+      <div class="article-info">
+        <a href="/2016/11/10/mysql主从复制/"><span class="article-date">
+  2016-11-10
+</span>
+</a>
+        
+
+        
+
+      </div>
+      <div class="article-entry">
+        
+          <h1 id="mysql主从复制"><a href="#mysql主从复制" class="headerlink" title="mysql主从复制"></a>mysql主从复制</h1><hr>
+<blockquote>
+<p>功能：当向主服务器插入|修改|删除数据时，数据会自动同步到从服务器。注意：主从复制是单向的，只能主-&gt;从</p>
+<p>原理（利用了bin日志）:mysql有一种日志叫做bin日志（二进制日志）。这个日志会记录下所有修改了数据库的SQL语句，（insert,update,delete,ALTER TABLE,grant等等）。主从复制的原理把主服务器的BIN日志复制到从服务器上执行一遍，这样从服务器上的数据就和主服务器上的数据相同了。</p>
+<p>扩展：mysql中的日志：</p>
+</blockquote>
+<pre><code>1. 查询日志    
+2. 错误日志
+3. BIN日志
+4. 慢日志：4.你可以设置一个时间阀值，如0.5秒，那么将来所以执行时间超过这个值的SQL语句就会被记录下来。这样我们就可以把慢的SQL语句记录下来，专门进行优化。
+用途：可以快速定位到网站中比较拖网站的SQL，然后可以优化：建索引，缓存这个SQL的结果。
+</code></pre><p>###实际配置：</p>
+<blockquote>
+<p>主服务器：</p>
+</blockquote>
+<pre><code>1. 开启bin日志，修改mysql配置文件：my.ini添加log-bin = mysql-bin
+2. 为服务器指定一个server-id（主从服务器的id值不能重复）
+   server-id = 1
+3. 如果是环形的服务器需要添加一下项： 
+   log-slave-updates = on
+4. 在主服务器上为从服务器创建一个用来同步数据的账号
+   登录myql执行GRANT REPLICATION SLAVE ON *.* TO &apos;slave&apos;@&apos;%&apos; IDENTIFIED BY &apos;1234&apos;;
+5. 在主服务器执行SQL查看主服务器当前BIN日志的状态
+   show master status;
+注意：每次修改数据时这两个值都会改变，所有在查看了这两个值后，不要操作主服务器、直接到从服务器配置完成之后，否则这个值对应不上会同步失败。
+</code></pre><blockquote>
+<p>从服务器：</p>
+</blockquote>
+<pre><code>1. 开始bin日志,修改配置文件/etc/my.conf
+2. 设置一个server-id,server-id=2
+3. 如果是环形的服务器需要添加一下项： 
+   log-slave-updates = on
+4. 在从服务器上执行SQL语句配置主服务器的地址：
+   登录mysql，设置从服务器并启动复制功能
+   STOP SLAVE;
+   CHANGE MASTER TO master_host = &apos;ip地址&apos;，master_user=&apos;slave&apos; ,master_password = &apos;1234&apos;,master_log_file=&apos;mysql_bin&apos;,master_log_pos=372
+   start slave;
+5. 执行show slave status \G;查看从服务器的状态是否配置成功。
+    slave_io_running:yes
+    slave_sql_runnint:yes 
+如果两个YES代表成功。
+注意：在配置成功之前，主服务器上的数据不会自动到从服务器上。所有需要在配置之前先把主服务器上的数据手动的导到从服务器上。配置完后数据就同步了。
+</code></pre><h3 id="设置mysql服务器自增id"><a href="#设置mysql服务器自增id" class="headerlink" title="设置mysql服务器自增id"></a>设置mysql服务器自增id</h3><pre><code>auto_increment_increment = 3;每次加几
+auto_increment_offset = 1;第一个数从几开始
+</code></pre><h3 id="要实现读写分离，还需要使用中间件。防止高并发出现的错误。"><a href="#要实现读写分离，还需要使用中间件。防止高并发出现的错误。" class="headerlink" title="要实现读写分离，还需要使用中间件。防止高并发出现的错误。"></a>要实现读写分离，还需要使用中间件。防止高并发出现的错误。</h3>
+        
+      </div>
+    </div>
+
+  
+    </div>
+  
 
   
   
@@ -201,7 +280,7 @@
 
           <div class="main-footer">
   
-    © 2016 Hexo - Powered by <a href="http://hexo.io" target="_blank">Hexo</a> - Theme <a href="https://github.com/denjones/hexo-theme-chan" target="_blank">Chan</a>
+    © 2017 Hexo - Powered by <a href="http://hexo.io" target="_blank">Hexo</a> - Theme <a href="https://github.com/denjones/hexo-theme-chan" target="_blank">Chan</a>
   
 </div>
 
